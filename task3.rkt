@@ -2,6 +2,25 @@
 
 ;;----------Q1---------------
 
+#|
+In this Q we extended the AE language to also deal with exponentiations.
+we changed the syntax to be in postfix form, and in addition added two operators: power and sqr as been asked.
+in the eval we called the functions pow and square. 
+---pow---
+input: two Numbers. 
+output -> Number representing the first argument raised by the power of the second argument.
+  
+**difficulties + solving : ouer difficulty was to undersend where to call the pow function.
+we discusssed it a litlle and dicided that it sould be called in the eval.
+
+---square---
+input: Numbers. 
+output -> Number representing the power of the first argument .
+  
+**difficulties + solving : ouer difficulty was to undersend where to call the square function.
+we discusssed it a litlle and dicided that it sould be called in the eval
+
+|#
 
 #|
 The AE grammer
@@ -22,7 +41,7 @@ The AE grammer
   [Mul AE AE]
   [Div AE AE]
   [power AE AE]
-  [sqr AE ]
+  [sqr AE ] 
   )
 
 
@@ -78,12 +97,9 @@ The AE grammer
   (eval (parse code)))
 
 
-(test (parse "{ 3  4 +}") => (Add (Num 3)
-                                   (Num 4)))
+(test (parse "{ 3  4 +}") => (Add (Num 3)(Num 4)))
 (test (parse "3") => (Num 3))
-(test (parse "{ {3 2 -}  4  +}") => (Add (Sub (Num 3)
-                                              (Num 2))
-                                         (Num 4)))
+(test (parse "{ {3 2 -}  4  +}") => (Add (Sub (Num 3)(Num 2))(Num 4)))
 (test (parse "{ 1 2 3 4 +}") =error> "bad syntax")
 (test (parse "{+ 1 2}") =error> "bad syntax")
 (test (eval (Num 3)) => 3)
@@ -102,21 +118,30 @@ The AE grammer
 (test (run "{+ 1 2 3 4}") =error> "bad syntax")
  
 (test (run "3") => 3) 
- (test (run "{3 4 +}") => 7) 
- (test (run "{{3 4 -} 7 +}") => 6) 
- (test (run "{{3 4 power} 7 +}") => 88) 
- (test (run "{{2 4 power} {5 sqr} +}") => 41)
+(test (run "{3 4 +}") => 7) 
+(test (run "{{3 4 -} 7 +}") => 6)  
+(test (run "{{3 4 power} 7 +}") => 88) 
+(test (run "{{2 4 power} {5 sqr} +}") => 41)
 (test (run "{{2 4/4 power} {5 sqr} +}") => 27) ;; power with integer 4/4
 (test (run "{{2 4/5 power} {5 sqr} +}") 
- =error> "eval: power expects an integer power, got")
+ =error> "eval: power expects an integer power, got") 
 (test (run "{2 85/100 power} ")   
  =error> "eval: power expects an integer power, got")
 
 
 ;;----------Q2--------------- 
 
+#|
+In this Q we complete the full interpreter for the LE language.
+we fille in the blank in the parser and the evaluator.
 
+|#
 
+#|
+the LE consists of LIST and ATOM when the ATOM are the numbers and symbols and the LIST part consist of al type of list that is valid in
+our LE language.
+the lists can be nested and except a LIST or it can except an ATOM.
+|#
 ;; LE abstract syntax trees 
 (define-type LE = (U LIST ATOM)) 
 ;; LIST abstract syntax trees 
@@ -180,7 +205,7 @@ The AE grammer
  (cons fst-val (eval-append-args (rest exprs))) 
  (error 'evalLE "append argument: expected List got ~s" fst-val)))))
 
-
+ 
  (: evalLE : LE -> Any) 
  ;; evaluates LE expressions by reducing them to numbers 
  (define (evalLE expr) 
@@ -192,26 +217,28 @@ The AE grammer
  [(Append lst ) (apply append (eval-append-args lst))]) 
  (cases expr 
  [(Numb n) n] 
- [(Sym s) s])))
+ [(Sym s) s]))) 
 
 
  (: runLE : String -> Any) 
  ;; evaluate a WAE program contained in a string 
  (define (runLE str) 
  (evalLE (parseLE str)))
-
+ 
 
 
 (test (parseLE "3") => (Numb 3))
+(test (parseLE "null") => (Nul))
 (test (parseLE "hey") => (Sym 'hey))
 (test (parseLE "{cons 1 {cons two null}}") =>
-(Cons (Numb 1) (Cons (Sym 'two) (Nul))))
+(Cons (Numb 1) (Cons (Sym 'two)(Nul))))
+(test (parseLE "{append {list 1 hey}}") =>
+(Append (list (Lists (list (Numb 1)(Sym 'hey))))))
+(test (parseLE "{append}") => (Append (list)))
+(test (parseLE "{append {list {cons 1 {cons two null}}}}") =>
+(Append (list(Lists (list(Cons (Numb 1)(Cons (Sym 'two)(Nul))))))))        
+ 
 
-
-#|
-(test (parseLE "{append {list {cons {cons 1 null} {cons two null}}}}") =>
-(Append (Lists (Cons (Numb 1)(Nul)) (Cons (Sym 'two) (Nul)))))  
-|#
 
 (test (runLE "null") => null)
 (test (runLE "12") => 12)
@@ -219,7 +246,14 @@ The AE grammer
 (test (runLE "{cons 1 {cons two null}}") =>
 '(1 two))
 (test (runLE "{list 1 2 3}") => '(1 2 3))
-(test (runLE "{list 1 {cons 2 {cons 3 null}}}") => '(1 (2 3)) )
-(test (runLE "{list {cons}}") =error> "parsesexprLE: bad syntax in (cons)") 
+(test (runLE "{list 1 2 {cons 2 null}}") => '(1 2 (2)))
+(test (runLE "{append {list {list 3 4} {list 1 2 {cons 2 null}}}}") => '((3 4) (1 2 (2))))
+(test (runLE "{append  1 {list 1 2}}")=error> "parsesexprLE: expected LIST; got" )  
+(test (runLE "{list 1 {cons 2 {cons 3 null}}}") => '(1 (2 3)))
+(test (runLE "{list null}") => '(())) 
+(test (runLE "{list 2 hey null}") => '(2 hey ()))
+(test (runLE "{list {cons}}") =error> "parsesexprLE: bad syntax in (cons)")  
 (test (runLE "{list {cons 2 1}}") =error>
-"parsesexprLE: expected LIST; got")   
+"parsesexprLE: expected LIST; got")
+
+
